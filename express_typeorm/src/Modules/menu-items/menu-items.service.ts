@@ -1,9 +1,8 @@
-import { MenuItem } from './entities/menu-item.entity';
+import { MenuItem } from "./entities/menu-item.entity";
 import { Repository } from "typeorm";
 import App from "../../app";
 
 export class MenuItemsService {
-
   private menuItemRepository: Repository<MenuItem>;
 
   constructor(app: App) {
@@ -86,6 +85,17 @@ export class MenuItemsService {
   */
 
   async getMenuItems() {
-    throw new Error('TODO in task 3');
+    try {
+      const allMenuItems: Array<MenuItem> = await this.menuItemRepository
+        .createQueryBuilder("menu_item")
+        .leftJoinAndSelect("menu_item.children", "child")
+        .orderBy("menu_item.createdAt", "DESC")
+        .getMany();
+
+      // console.log("All", allMenuItems);
+      return allMenuItems;
+    } catch (error) {
+      throw new Error("TODO in task 3");
+    }
   }
 }
