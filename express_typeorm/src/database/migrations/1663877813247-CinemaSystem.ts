@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class CinemaSystem1663877813247 implements MigrationInterface {
   /**
@@ -31,8 +31,83 @@ export class CinemaSystem1663877813247 implements MigrationInterface {
    * As a cinema owner I dont want to configure the seating for every show
    */
   public async up(queryRunner: QueryRunner): Promise<void> {
-    throw new Error('TODO: implement migration in task 4');
+    // Create tables
+    await queryRunner.query(`
+      CREATE TABLE cinema (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL
+      );
+
+      CREATE TABLE film (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        duration INTERVAL NOT NULL,
+        description TEXT
+      );
+
+      CREATE TABLE room (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        capacity INT NOT NULL,
+        cinema_id INT NOT NULL REFERENCES cinema(id)
+      );
+
+      CREATE TABLE show (
+        id SERIAL PRIMARY KEY,
+        start_time TIMESTAMP NOT NULL,
+        film_id INT NOT NULL REFERENCES film(id),
+        room_id INT NOT NULL REFERENCES room(id)
+      );
+
+      CREATE TABLE pricing (
+        id SERIAL PRIMARY KEY,
+        show_id INT NOT NULL REFERENCES show(id),
+        price DECIMAL(10, 2) NOT NULL,
+        seat_type TEXT NOT NULL
+      );
+
+      CREATE TABLE seat (
+        id SERIAL PRIMARY KEY,
+        row INT NOT NULL,
+        number INT NOT NULL,
+        room_id INT NOT NULL REFERENCES room(id)
+      );
+
+      CREATE TABLE booking (
+        id SERIAL PRIMARY KEY,
+        show_id INT NOT NULL REFERENCES show(id),
+        seat_id INT NOT NULL REFERENCES seat(id),
+        user_name TEXT NOT NULL,
+        user_email TEXT NOT NULL
+      );
+    `);
+
+    // Create indexes
+    await queryRunner.query(`
+      CREATE INDEX idx_show_start_time ON show(start_time);
+      CREATE INDEX idx_pricing_show_id ON pricing(show_id);
+      CREATE UNIQUE INDEX idx_seat_row_number_room_id ON seat(row, number, room_id);
+      CREATE UNIQUE INDEX idx_booking_show_id_seat_id ON booking(show_id, seat_id);
+    `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {}
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
+      DROP TABLE booking;
+      DROP TABLE seat;
+      DROP TABLE pricing;
+      DROP TABLE show;
+      DROP TABLE room;
+      DROP TABLE film;
+      DROP TABLE cinema;
+    `);
+
+    // Drop indexes
+    await queryRunner.query(`
+      DROP INDEX idx_show_start_time;
+      DROP INDEX idx_pricing_show_id;
+      DROP INDEX idx_seat_row_number_room_id;
+      DROP INDEX idx_booking_show_id_seat_id;
+    `);
+  }
 }
